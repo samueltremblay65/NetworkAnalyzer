@@ -9,7 +9,11 @@ struct TrafficStats
     int totalPackets = 0;
 
     std::unordered_map<std::string, int> ipCounts;
-    std::unordered_map<int, int> portCounts;
+
+    std::unordered_map<int, int> tcpPortCounts;
+    std::unordered_map<int, int> udpPortCounts;
+
+    std::unordered_map<std::string, int> dnsQueries;
 
     int ipv4 = 0;
     int ipv6 = 0;
