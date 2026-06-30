@@ -10,6 +10,7 @@ include_directories(include)
 
 add_executable(PacketAnalyzer
     src/main.cpp
+    src/core/PacketProcessor.cpp
     src/core/PacketAnalyzer.cpp
     src/parser/PcapParser.cpp
     src/parser/IPv4Parser.cpp
@@ -17,8 +18,25 @@ add_executable(PacketAnalyzer
     src/parser/EthernetParser.cpp
     src/util/MapUtils.cpp
     src/util/ByteUtils.cpp
+    src/capture/LiveCapture.cpp
+
 )
 
 set_target_properties(PacketAnalyzer PROPERTIES
     VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+)
+
+target_include_directories(PacketAnalyzer PRIVATE
+    include
+    "C:/Users/samue/Npcap_SDK/Include"
+)
+
+target_link_directories(PacketAnalyzer PRIVATE
+    "C:/Users/samue/Npcap_SDK/Lib/x64"
+)
+
+target_link_libraries(PacketAnalyzer
+    wpcap
+    Packet
+    ws2_32
 )

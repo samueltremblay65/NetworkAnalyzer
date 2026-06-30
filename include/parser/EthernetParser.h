@@ -5,5 +5,5 @@
 class EthernetParser
 {
     public:
-        static EthernetFrame parse(const std::vector<uint8_t>& data);
+        static EthernetFrame parse(const uint8_t* data);
 };

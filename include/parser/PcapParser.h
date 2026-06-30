@@ -2,18 +2,25 @@
 #include <string>
 #include <cstdint>
 #include <unordered_map>
+#include <pcap.h>
 
 #include "stats/TrafficStats.h"
+#include "core/PacketProcessor.h"
 
 class PcapParser
 {
     public:
+        PcapParser();
+        ~PcapParser();
+
         bool open(const std::string& filename);
         bool readGlobalHeader();
-        bool readPackets(TrafficStats& trafficStats);
+        bool readPackets(PacketProcessor& processor, TrafficStats& stats);
+        void close();
 
     private:
         std::string filePath;
+        pcap_t* handle = nullptr;  
 
     struct GlobalHeader
     {

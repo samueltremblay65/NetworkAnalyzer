@@ -1,7 +1,9 @@
+#include <iostream>
+
 #include "core/PacketAnalyzer.h"
 #include "stats/TrafficStats.h"
 #include "util/MapUtils.h"
-#include <iostream>
+
 
 void printReport(const TrafficStats& trafficStats);
 
@@ -9,10 +11,9 @@ int main()
 {
     PacketAnalyzer analyzer;
 
-    analyzer.run("data/2026-02-28-traffic-analysis-exercise.pcap");
-    const TrafficStats& trafficStats = analyzer.getTrafficStats();
-
-    printReport(trafficStats);
+    // From file
+    analyzer.runLive(25);
+    printReport(analyzer.getTrafficStats());
 
     return 0;
 }
@@ -25,7 +26,7 @@ void printReport(const TrafficStats& trafficStats) {
     std::cout << "IPv6: " << trafficStats.ipv6 << "\n";
     std::cout << "TCP: " << trafficStats.tcp << "\n";
     std::cout << "UDP: " << trafficStats.udp << "\n";
-    std::cout << "Others: " << trafficStats.otherIPProtocols << "\n";
+    std::cout << "Others: " << trafficStats.otherIPProtocols << "\n\n";
 
     std::cout << "Top destination IPs" << "\n";
     std::vector<std::pair<std::string, int>> entries = getTopEntries(trafficStats.ipCounts, 5);

@@ -13,11 +13,9 @@ static std::string formatIP(uint32_t ip)
     return ss.str();
 }
 
-IPv4Packet IPv4Parser::parse(const std::vector<uint8_t>& data, size_t offset)
+IPv4Packet IPv4Parser::parse(const uint8_t* p, size_t length)
 {
     IPv4Packet pkt;
-
-    const uint8_t* p = data.data() + offset;
 
     // IPv4 header layout (minimum 20 bytes)
     // -------------------------------

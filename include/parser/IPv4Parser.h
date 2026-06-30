@@ -5,5 +5,5 @@
 class IPv4Parser
 {
 public:
-    static IPv4Packet parse(const std::vector<uint8_t>& data, size_t offset);
+    static IPv4Packet parse(const uint8_t* data, size_t length);
 };

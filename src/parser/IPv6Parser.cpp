@@ -21,11 +21,9 @@ static std::string formatIPv6(const uint8_t* p)
     return ss.str();
 }
 
-IPv6Packet IPv6Parser::parse(const std::vector<uint8_t>& data, size_t offset)
+IPv6Packet IPv6Parser::parse(const uint8_t* p, size_t length)
 {
     IPv6Packet pkt;
-
-    const uint8_t* p = data.data() + offset;
 
     // IPv6 header is fixed 40 bytes
     // -------------------------------

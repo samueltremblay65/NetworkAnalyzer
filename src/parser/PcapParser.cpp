@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "parser/PcapParser.h"
+#include "core/PacketProcessor.h"
 #include "model/EthernetFrame.h"
 #include "parser/EthernetParser.h"
 #include "parser/IPv4Parser.h"
@@ -10,99 +11,102 @@
 #include "stats/TrafficStats.h"
 #include "util/MapUtils.h"
 
+PcapParser::PcapParser() : handle(nullptr) {}
 
-bool PcapParser::open(const std::string& filename)
+PcapParser::~PcapParser()
 {
-    filePath = filename;
+    close();
+}
+
+bool PcapParser::open(const std::string& filePath)
+{
+    char errbuf[PCAP_ERRBUF_SIZE];
+
+    handle = pcap_open_offline(filePath.c_str(), errbuf);
+
+    if (!handle)
+    {
+        std::cerr << "pcap_open_offline failed: "
+                  << errbuf << "\n";
+        close();
+        return false;
+    }
+
     return true;
 }
 
 bool PcapParser::readGlobalHeader()
 {
-    std::ifstream file(filePath, std::ios::binary);
-
-    if (!file.is_open())
+    if (!handle)
     {
-        std::cerr << "Failed to open file\n";
+        std::cerr << "PCAP handle is null\n";
         return false;
     }
 
-    file.read(reinterpret_cast<char*>(&header), sizeof(header));
+    int linkType = pcap_datalink(handle);
 
-    if (!file)
+    std::cout << "PCAP GLOBAL HEADER INFO\n";
+    std::cout << "Link-layer type: " << linkType << "\n";
+
+    if (linkType != 1)
     {
-        std::cerr << "Failed to read PCAP header\n";
+        std::cerr << "Unsupported link type (not Ethernet)\n";
         return false;
     }
-
-    std::cout << "PCAP GLOBAL HEADER\n";
-    std::cout << "Magic: " << std::hex << header.magicNumber << std::dec << "\n";
-    std::cout << "Version: " << header.versionMajor << "." << header.versionMinor << "\n";
-    std::cout << "SnapLen: " << header.snaplen << "\n";
-    std::cout << "Network: " << header.network << "\n";
 
     return true;
 }
 
-bool PcapParser::readPackets(TrafficStats& trafficStats)
+bool PcapParser::readPackets(PacketProcessor& processor, TrafficStats& stats)
 {
-    std::ifstream file(filePath, std::ios::binary);
-
-    if (!file.is_open())
+    if (!handle)
     {
-        std::cerr << "Failed to open file\n";
+        std::cerr << "Cannot read packets: handle is null\n";
         return false;
     }
 
-    // Skip global header (24 bytes)
-    file.seekg(24, std::ios::beg);
+    struct pcap_pkthdr* header;
+    const u_char* packet;
 
-    while (file)
+    while (true)
     {
-        PacketHeader ph;
+        int result = pcap_next_ex(handle, &header, &packet);
 
-        file.read(reinterpret_cast<char*>(&ph), sizeof(ph));
-
-        if (!file)
-            break;
-
-        std::vector<uint8_t> data(ph.incl_len);
-        file.read(reinterpret_cast<char*>(data.data()), ph.incl_len);
-
-        if (!file)
-            break;
-
-        trafficStats.totalPackets++;
-
-        EthernetFrame frame = EthernetParser::parse(data);
-
-        // Determine if it is IPv4 or IPv6
-        if (frame.etherType == 0x0800)
+        if (result == 1)
         {
-            IPv4Packet ip = IPv4Parser::parse(data, 14);
-            trafficStats.ipv4++;
-            // Could move to map to contain all IP protocols
-            if(ip.protocol == 6) trafficStats.tcp++;
-            else if(ip.protocol == 17)  trafficStats.udp++; 
-            else trafficStats.otherIPProtocols++;
+            if (!packet || !header)
+                continue;
 
-            // Add
-            if(mapContainsKey(trafficStats.ipCounts, ip.dstIP)) trafficStats.ipCounts[ip.dstIP]++;
-            else trafficStats.ipCounts.insert({ip.dstIP, 1});
+            processor.processPacket(
+                reinterpret_cast<const uint8_t*>(packet),
+                header->caplen,
+                stats
+            );
         }
-        else if (frame.etherType == 0x86DD)
+        else if (result == 0)
         {
-            IPv6Packet ip = IPv6Parser::parse(data, 14);
-            trafficStats.ipv6++;
-            // nextHeader of IPv6 contains  the IP protocol used
-            if(ip.nextHeader == 6) trafficStats.tcp++;
-            else if(ip.nextHeader == 17)  trafficStats.udp++;
-            else trafficStats.otherIPProtocols++;
-
-            if(mapContainsKey(trafficStats.ipCounts, ip.dstIP)) trafficStats.ipCounts[ip.dstIP]++;
-            else trafficStats.ipCounts.insert({ip.dstIP, 1});
+            continue; // timeout (rare for offline)
+        }
+        else if (result == -2)
+        {
+            break; // EOF
+        }
+        else
+        {
+            std::cerr << "pcap_next_ex error: "
+                      << pcap_geterr(handle) << "\n";
+            break;
         }
     }
 
     return true;
+}
+
+void PcapParser::close()
+{
+    if (handle)
+    {
+        pcap_close(handle);
+        handle = nullptr;
+    }
 }

@@ -7,6 +7,7 @@ class PacketAnalyzer
 {
     public:
         void run(const std::string& file);
+        void runLive(int packets);
 
         const TrafficStats& getTrafficStats();
 };
