@@ -17,6 +17,7 @@ add_executable(PacketAnalyzer
     src/parser/IPv6Parser.cpp
     src/parser/EthernetParser.cpp
     src/parser/DNSParser.cpp
+    src/parser/TLSParser.cpp
     src/util/MapUtils.cpp
     src/util/ByteUtils.cpp
     src/capture/LiveCapture.cpp
